@@ -1,0 +1,65 @@
+# Multiple Website Summariser
+
+Description
+-----------
+A small web application that accepts 1–10 website URLs and a required keyword, scrapes the pages, cleans the raw HTML into plain text, and returns a concise summary focused on the provided keyword. The backend performs parallel scraping and uses a summarization API (or a fallback summarizer) to generate an HTML-formatted summary. The frontend collects URLs and the keyword and displays the returned summary.
+
+## Demo
+
+![Demo](https://private-user-images.githubusercontent.com/209789676/511317795-fd01bb44-a099-46ea-85de-13b5674f4e51.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjI2MDA3NjgsIm5iZiI6MTc2MjYwMDQ2OCwicGF0aCI6Ii8yMDk3ODk2NzYvNTExMzE3Nzk1LWZkMDFiYjQ0LWEwOTktNDZlYS04NWRlLTEzYjU2NzRmNGU1MS5naWY_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUxMTA4JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MTEwOFQxMTE0MjhaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1kODU4YmI3MjI3MTlmYjM4ZDJiMDE4ZWUyMTIzNGZiNmEyZWNiYTQ5OTg2YTZiNzM2NzVhY2NjNTAzMmFjMmZlJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.EP8I2BNUfq6xn8ew9j-uUUQYdfaZrFrVKClbuYlFhW4)
+
+
+What is used
+------------
+- Backend: Node.js + Express. See the server entry at [backend/src/server.ts](backend/src/server.ts) and app configuration at [backend/src/app.ts](backend/src/app.ts).
+- Scraping: Puppeteer implemented in [`scrapeContent`](backend/src/services/scraper.service.ts).
+- HTML cleaning: [`cleanHTML`](backend/src/utils/htmlCleaner.ts).
+- Summarization: API integration and fallback logic in [`summarizeContent`](backend/src/services/summarizer.service.ts). API key is configured via [backend/.env](backend/.env).
+- Controller and route: request handling implemented in [`summarizeController`](backend/src/controllers/summarize.controller.ts) and the route at [backend/src/routes/summarize.route.ts](backend/src/routes/summarize.route.ts).
+- Frontend: Angular (standalone components). Main app logic is in [frontend/src/app/app.component.ts](frontend/src/app/app.component.ts) and the frontend call to backend is in [`ScraperService.getSummary`](frontend/src/app/services/scraper.service.ts).
+
+Notes and configuration
+-----------------------
+- Parallel scraping and CPU/ram:
+  - Each URL scraping runs in a separate browser page/process. The scraper defaults concurrency based on available CPU cores (see [`scrapeContent`](backend/src/services/scraper.service.ts)).
+  - Adjust the maximum number of concurrent scrapers according to your machine: fewer concurrent pages on low-CPU or low-RAM systems to avoid crashes or extreme swapping.
+  - If you expect to run on a low-resource machine, reduce concurrency to 1–2 and increase timeouts accordingly.
+- API / model / request configuration:
+  - Update the API endpoint and model in [`summarizeContent`](backend/src/services/summarizer.service.ts) before production use.
+  - Set your API key in [backend/.env](backend/.env) (SUMMARISER_API_KEY).
+  - Adjust request timeouts, retry/backoff, and model parameters in [`summarizeContent`](backend/src/services/summarizer.service.ts) to fit your API quotas and latency tolerance.
+- CORS / origin: configure CORS in [backend/src/app.ts](backend/src/app.ts) if serving the frontend from a different origin.
+
+Quickstart
+----------
+1. Backend
+   - Install dependencies and start development server:
+     ```sh
+     cd backend
+     npm install
+     npm run dev
+     ```
+   - Production build and run:
+     ```sh
+     cd backend
+     npm install
+     npm run build
+     npm start
+     ```
+   - Ensure [backend/.env](backend/.env) is set with your summarization API key and any other env vars.
+
+2. Frontend
+   - Install and run:
+     ```sh
+     cd frontend
+     npm install
+     npm run start
+     ```
+   - Open http://localhost:4200 and use the UI to paste URLs and a keyword.
+
+3. End-to-end
+   - Enter 1–10 URLs in the frontend, provide a keyword, then click "Summarize". The frontend calls [`ScraperService.getSummary`](frontend/src/app/services/scraper.service.ts) which posts to the backend route mounted at `/api/summarize` handled by [`summarizeController`](backend/src/controllers/summarize.controller.ts).
+
+Conclusion
+----------
+This project demonstrates a simple pipeline for multi-site scraping and keyword-focused summarization. Before production, verify scraping concurrency limits for your infrastructure, configure the summarization API/model and key in [`summarizeContent`](backend/src/services/summarizer.service.ts) and [backend/.env](backend/.env), and review CORS and security settings in [backend/src/app.ts](backend/src/app.ts).
